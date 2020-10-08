@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.com/milanoid/4finance-qa-assigment.svg?branch=master)](https://travis-ci.com/milanoid/4finance-qa-assigment)
+
 # Task - Mix of API and web test
 
 Create an acceptance test for BoardGameGeek service covering the following single scenario:
