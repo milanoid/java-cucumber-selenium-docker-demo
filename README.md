@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/milanoid/4finance-qa-assigment.svg?branch=master)](https://travis-ci.com/milanoid/4finance-qa-assigment)
+[![Build Status](https://travis-ci.com/milanoid/4finance-qa-assignment.svg?branch=master)](https://travis-ci.com/milanoid/4finance-qa-assignment)
 
 # Task - Mix of API and web test
 
