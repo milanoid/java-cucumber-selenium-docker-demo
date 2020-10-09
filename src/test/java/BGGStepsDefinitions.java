@@ -1,8 +1,11 @@
 import io.cucumber.java.After;
 import io.cucumber.java.Before;
+import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import io.restassured.RestAssured;
+import io.restassured.parsing.Parser;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
@@ -14,6 +17,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
 
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.openqa.selenium.By.xpath;
 import static org.openqa.selenium.support.ui.ExpectedConditions.*;
 
@@ -25,7 +30,7 @@ public class BGGStepsDefinitions {
     @Before
     public void setUp() throws MalformedURLException {
 
-        //todo read from system properties?
+        // this works with docker-compose
         String seleniumServerAddress = "http://selenium:4444/wd/hub";
 
         if (driver == null) {
@@ -148,6 +153,26 @@ public class BGGStepsDefinitions {
         for (int i = 0; i < list.size(); i++) {
             wait.until(visibilityOfElementLocated(xpath(String.format(".//div[@class='modal-content']//table//span[text()='%s']", list.get(i)))));
         }
+    }
+
+    @And("the poll results for language dependence can be obtained from API")
+    public void the_poll_results_for_language_dependence_can_be_obtained_from_API() {
+        RestAssured.defaultParser = Parser.XML;
+
+        // get game id
+        String gameId =
+                given().when().get("https://www.boardgamegeek.com/xmlapi2/search?query=The Godfather: Corleone's Empire")
+                        .then()
+                        .and()
+                        .extract().xmlPath().getNode("items").getNode("item").getAttribute("id");
+
+        // get game details (contains language dependencies too)
+        given()
+                .when().get(String.format("https://www.boardgamegeek.com/xmlapi2/thing?id=%s", gameId))
+                .then()
+                .and()
+                .assertThat()
+                .body("items.item.poll[2].@name", equalTo("language_dependence"));
     }
 
 }
