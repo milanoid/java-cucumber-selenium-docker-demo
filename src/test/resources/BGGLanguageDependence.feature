@@ -16,3 +16,4 @@ Feature: Is Language Dependence present on a game page?
       | Moderate in-game text - needs crib sheet or paste ups            |
       | Extensive use of text - massive conversion needed to be playable |
       | Unplayable in another language                                   |
+    And the poll results for language dependence can be obtained from API
