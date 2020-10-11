@@ -30,7 +30,7 @@ public class BGGStepsDefinitions {
     @Before
     public void setUp() throws MalformedURLException {
 
-        // this works with docker-compose
+        // this works with docker-compose, modify if selenium runs elsewhere
         String seleniumServerAddress = "http://selenium:4444/wd/hub";
 
         if (driver == null) {
@@ -62,7 +62,7 @@ public class BGGStepsDefinitions {
         driver.get("https://boardgamegeek.com/");
         // synchronization
         wait.until(visibilityOfAllElementsLocatedBy(
-                xpath(".//footer[@class='global-footer row']")));
+                xpath(".//footer")));
     }
 
     @Given("the user clicks Sign In link")
@@ -163,6 +163,7 @@ public class BGGStepsDefinitions {
         String gameId =
                 given().when().get("https://www.boardgamegeek.com/xmlapi2/search?query=The Godfather: Corleone's Empire")
                         .then()
+                        .statusCode(200)
                         .and()
                         .extract().xmlPath().getNode("items").getNode("item").getAttribute("id");
 
@@ -170,6 +171,7 @@ public class BGGStepsDefinitions {
         given()
                 .when().get(String.format("https://www.boardgamegeek.com/xmlapi2/thing?id=%s", gameId))
                 .then()
+                .statusCode(200)
                 .and()
                 .assertThat()
                 .body("items.item.poll[2].@name", equalTo("language_dependence"));
