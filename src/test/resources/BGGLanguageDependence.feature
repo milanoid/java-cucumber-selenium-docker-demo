@@ -17,3 +17,4 @@ Feature: Is Language Dependence present on a game page?
       | Extensive use of text - massive conversion needed to be playable |
       | Unplayable in another language                                   |
     And the poll results for language dependence can be obtained from API
+    And the most voted option is the same in UI and API

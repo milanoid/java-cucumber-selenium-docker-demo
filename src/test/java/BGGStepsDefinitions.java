@@ -1,3 +1,4 @@
+import io.cucumber.datatable.DataTable;
 import io.cucumber.java.After;
 import io.cucumber.java.Before;
 import io.cucumber.java.en.And;
@@ -6,19 +7,25 @@ import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import io.restassured.RestAssured;
 import io.restassured.parsing.Parser;
+import io.restassured.path.xml.XmlPath;
+import io.restassured.path.xml.element.NodeChildren;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.remote.RemoteWebDriver;
+import org.openqa.selenium.remote.RemoteWebElement;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Iterator;
 import java.util.List;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.CoreMatchers.equalTo;
+import static java.lang.Integer.valueOf;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 import static org.openqa.selenium.By.xpath;
 import static org.openqa.selenium.support.ui.ExpectedConditions.*;
 
@@ -26,6 +33,8 @@ public class BGGStepsDefinitions {
 
     private WebDriver driver;
     private WebDriverWait wait;
+
+    String mostVotedTextWebUI, mostVotedTextAPI;
 
     @Before
     public void setUp() throws MalformedURLException {
@@ -148,11 +157,29 @@ public class BGGStepsDefinitions {
     }
 
     @Then("the slide out panel is displayed with items")
-    public void the_slide_out_panel_is_displayed_with_items(io.cucumber.datatable.DataTable dataTable) {
+    public void the_slide_out_panel_is_displayed_with_items(DataTable dataTable) {
         List<String> list = dataTable.asList(String.class);
         for (int i = 0; i < list.size(); i++) {
             wait.until(visibilityOfElementLocated(xpath(String.format(".//div[@class='modal-content']//table//span[text()='%s']", list.get(i)))));
         }
+
+        List<WebElement> results = driver.findElements(xpath(".//div[@class='modal-content']//table/tbody/tr"));
+        results.remove(results.size() - 1); // removes last table data with Total voters
+        mostVotedTextWebUI = results.get(findMostVotedOptionIndexInUI(results)).findElement(By.xpath(".//th")).getText().trim();
+    }
+
+    private int findMostVotedOptionIndexInUI(List<WebElement> results) {
+        int maxVotes = 0, currentVotes = 0, indexOfMaxVotes = 0;
+        Iterator iterator = results.iterator();
+        while (iterator.hasNext()) {
+            RemoteWebElement e = (RemoteWebElement) iterator.next();
+            currentVotes = valueOf(e.findElement(xpath(".//td[3]")).getText().trim());
+            if (currentVotes > maxVotes) {
+                maxVotes = currentVotes;
+                indexOfMaxVotes += 1;
+            }
+        }
+        return indexOfMaxVotes;
     }
 
     @And("the poll results for language dependence can be obtained from API")
@@ -168,13 +195,28 @@ public class BGGStepsDefinitions {
                         .extract().xmlPath().getNode("items").getNode("item").getAttribute("id");
 
         // get game details (contains language dependencies too)
-        given()
-                .when().get(String.format("https://www.boardgamegeek.com/xmlapi2/thing?id=%s", gameId))
-                .then()
-                .statusCode(200)
-                .and()
-                .assertThat()
-                .body("items.item.poll[2].@name", equalTo("language_dependence"));
+        String response = given()
+                .when().get(String.format("https://www.boardgamegeek.com/xmlapi2/thing?id=%s", gameId)).asString();
+
+        NodeChildren allResults = XmlPath.from(response).get("items.item.poll.find {it.@name == 'language_dependence'}.results.result");
+        mostVotedTextAPI = allResults.get(findMostVotedOptionIndexInAPI(allResults)).getAttribute("value");
+    }
+
+    @And("the most voted option is the same in UI and API")
+    public void the_most_voted_option_is_the_same_in_ui_and_api() {
+        assertThat("the Web UI and API option should be the same", mostVotedTextWebUI, is(mostVotedTextAPI));
+    }
+
+    private int findMostVotedOptionIndexInAPI(NodeChildren nodes) {
+        int mostVotesPollItem = 0, currentItem, levelAttribut = 1;
+        for (int i = 0; i < nodes.size(); i++) {
+            currentItem = valueOf(nodes.get(i).getAttribute("numvotes"));
+            if (currentItem > mostVotesPollItem) {
+                mostVotesPollItem = currentItem;
+                levelAttribut = valueOf(nodes.get(i).getAttribute("level")) - 1;
+            }
+        }
+        return levelAttribut;
     }
 
 }
