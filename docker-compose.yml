@@ -5,6 +5,7 @@ services:
     ports:
       - "5900:5900"
       - "4444:4444"
+    shm_size: '2gb'
   gradle:
     image: "gradle:6.6.1-jdk8"
     depends_on:
